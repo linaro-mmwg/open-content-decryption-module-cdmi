@@ -17,11 +17,11 @@
 CXXFLAGS = -g
 
 CDMI_DIR = cdmi-stub
-CDMI_SOURCES = $(CDMI_DIR)/mediakeysession.cpp $(CDMI_DIR)/mediakeys.cpp $(CDMI_DIR)/mediaenginesession.cpp
+CDMI_SOURCES = $(CDMI_DIR)/mediakeysession.cpp $(CDMI_DIR)/mediakeys.cpp $(CDMI_DIR)/mediaenginesession.cpp $(CDMI_DIR)/json_web_key.cpp
 CDMI_OBJECTS = $(CDMI_SOURCES:.cpp=.o)
-CDMI_INCLUDES = -I .
+CDMI_INCLUDES = -I . -I jsmn/
 CDMILIB_NAME = cdmi
-
+JSMN_LIBS = -ljsmn -lb64 -L ./jsmn/
 RPC_DIR = rpc
 RPC_SOURCES = $(RPC_DIR)/gen/opencdm_xdr_xdr.c $(RPC_DIR)/gen/opencdm_xdr_svc.c $(RPC_DIR)/gen/opencdm_callback_xdr.c $(RPC_DIR)/gen/opencdm_callback_clnt.c 
 RPC_OBJECTS = $(RPC_SOURCES:.c=.o)
@@ -29,12 +29,14 @@ RPC_INCLUDES = -I $(RPC_DIR)/gen
 
 SERVICE_SOURCES = service.cpp libs/shmemsem/shmemsem_helper.cpp
 SERVICE_INCLUDES = -I $(CDMI_DIR) $(RPC_INCLUDES)
-SERVICE_LIBS = -l$(CDMILIB_NAME) -lrt
+SERVICE_LIBS = -l$(CDMILIB_NAME) -lrt $(JSMN_LIBS)
 
-.PHONY: clean
+.PHONY: jsmn clean
 
-all: cdmi rpc service
+all: jsmn cdmi rpc service
 
+jsmn:
+	$(MAKE) -C jsmn/
 .c.o:
 	$(CXX) $(CXXFLAGS) $(RPC_INCLUDES) -c $< -o $@
 

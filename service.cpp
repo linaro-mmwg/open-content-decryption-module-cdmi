@@ -67,8 +67,12 @@ class CCallback : public IMediaKeySessionCallback {
     uint32_t cbChallenge = 0;
     string message;
 
-    cout << "OnKeyMessage: Key message received." << endl;
+    cout << "OnKeyMessage: Key message received:...." << endl;
 
+   for (int i = 0; i < cbKeyMessage; i++) {
+        cout << hex << static_cast<int>(pbKeyMessage[i]) << " ";
+   }
+    cout << endl;
     message = string(f_pszUrl) + "#SPLIT#" +
         string(reinterpret_cast<char*>(pbChallenge), cbChallenge);
 

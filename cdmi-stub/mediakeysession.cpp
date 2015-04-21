@@ -17,8 +17,11 @@
 #include <pthread.h>
 
 #include <iostream>
+#include <string>
 
 #include "imp.h"
+#include "json_web_key.h"
+#include "keypairs.h"
 
 #define DESTINATION_URL_PLACEHOLDER "http://no-valid-license-server"
 #define NYI_KEYSYSTEM L"keysystem-placeholder"
@@ -79,8 +82,14 @@ void CMediaKeySession::Update(
     uint32_t f_cbKeyMessageResponse) {
   int ret;
   pthread_t thread;
+  media::KeyIdAndKeyPairs keys;
 
   cout << "#mediakeysession.Run" << endl;
+  std::string key_string(reinterpret_cast<const char*>(f_pbKeyMessageResponse),
+                                   f_cbKeyMessageResponse);
+  //Session type is set to "0". We keep the function signature to
+  //match Chromium's ExtractKeysFromJWKSet(...) function
+  media::ExtractKeysFromJWKSet(key_string, &keys, 0);
 
   ret = pthread_create(&thread, NULL, CMediaKeySession::_CallRunThread2, this);
   if (ret == 0) {

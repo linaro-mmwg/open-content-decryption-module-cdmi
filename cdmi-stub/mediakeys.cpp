@@ -61,7 +61,15 @@ CDMi_RESULT CMediaKeys::CreateMediaKeySession(
     const uint8_t *f_pbCDMData,
     uint32_t f_cbCDMData,
     IMediaKeySession **f_ppiMediaKeySession) {
-  cout << "#CMediaKeys::CreateMediaKeySession" << endl;
+  cout << "#CMediaKeys::CreateMediaKeySession:........ " << endl;
+  for (int i = 0; i < f_cbInitData; i++) {
+        cout << hex << static_cast<int>(f_pbInitData[i]) << " ";
+  }
+  cout << endl;
+
+  for (int i = 0; i < f_cbCDMData; i++)
+        cout << hex << static_cast<int>(f_pbCDMData[i]) << " ";
+  cout << endl;
 
   CDMi_RESULT dr = CDMi_S_FALSE;
   CMediaKeySession *poMediaKeySession = NULL;

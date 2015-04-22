@@ -15,9 +15,10 @@
  */
 
 #include <pthread.h>
-
+#include <assert.h>
 #include <iostream>
 #include <string>
+#include <string.h>
 
 #include "imp.h"
 #include "json_web_key.h"
@@ -25,10 +26,30 @@
 
 #define DESTINATION_URL_PLACEHOLDER "http://no-valid-license-server"
 #define NYI_KEYSYSTEM L"keysystem-placeholder"
+#include <openssl/aes.h>
+#include <openssl/evp.h>
+
 
 using namespace std;
 
 namespace CDMi {
+
+static media::KeyIdAndKeyPairs g_keys;
+
+static void hex_print(const void* pv, size_t len)
+{
+    const unsigned char * p = (const unsigned char*)pv;
+    if (NULL == pv)
+        printf("NULL");
+    else
+    {
+        size_t i = 0;
+        for (; i<len;++i)
+            printf("%02X ", *p++);
+    }
+    printf("\n");
+}
+
 
 CMediaKeySession::CMediaKeySession(const wchar_t *sessionId) {
   m_sessionId = sessionId;
@@ -82,14 +103,13 @@ void CMediaKeySession::Update(
     uint32_t f_cbKeyMessageResponse) {
   int ret;
   pthread_t thread;
-  media::KeyIdAndKeyPairs keys;
 
   cout << "#mediakeysession.Run" << endl;
   std::string key_string(reinterpret_cast<const char*>(f_pbKeyMessageResponse),
                                    f_cbKeyMessageResponse);
   //Session type is set to "0". We keep the function signature to
   //match Chromium's ExtractKeysFromJWKSet(...) function
-  media::ExtractKeysFromJWKSet(key_string, &keys, 0);
+  media::ExtractKeysFromJWKSet(key_string, &g_keys, 0);
 
   ret = pthread_create(&thread, NULL, CMediaKeySession::_CallRunThread2, this);
   if (ret == 0) {
@@ -130,7 +150,33 @@ CDMi_RESULT CMediaKeySession::Decrypt(
     uint32_t f_cbData,
     const uint32_t *f_pdwSubSampleMapping,
     uint32_t f_cdwSubSampleMapping) {
-  cout << "#CMediaKeySession::Decrypt" << endl;
+  AES_KEY aes_key;
+  assert(f_cbIV <  AES_BLOCK_SIZE);
+  unsigned char* out = (unsigned char*) malloc(f_cbData * sizeof(unsigned char));
+
+  if(g_keys.size() != 1) {
+        cout << "FIXME: We support only one key at the moment";
+        free(out);
+        return -1;//FIXME: CDMi_FAILED is not defined here?
+    }
+
+  const char * key = (g_keys[0].second).c_str();
+
+  AES_set_encrypt_key(reinterpret_cast<const unsigned char*>(key),
+                          strlen(key) * 8, &aes_key) ;
+
+  uint8_t ivec[AES_BLOCK_SIZE] = { 0 };
+  uint8_t ecount_buf[AES_BLOCK_SIZE] = { 0 };
+  unsigned int block_offset = 0;
+
+  memcpy(&(ivec[0]), f_pbIV, f_cbIV);
+
+  AES_ctr128_encrypt(reinterpret_cast<const unsigned char*>(f_pbData), out,
+                     f_cbData, &aes_key, ivec, ecount_buf, &block_offset);
+
+  memcpy(f_pbData, out, f_cbData);
+  free(out);
+
   return CDMi_SUCCESS;
 }
 

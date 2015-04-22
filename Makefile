@@ -21,7 +21,7 @@ CDMI_SOURCES = $(CDMI_DIR)/mediakeysession.cpp $(CDMI_DIR)/mediakeys.cpp $(CDMI_
 CDMI_OBJECTS = $(CDMI_SOURCES:.cpp=.o)
 CDMI_INCLUDES = -I . -I jsmn/
 CDMILIB_NAME = cdmi
-JSMN_LIBS = -ljsmn -lb64 -L ./jsmn/
+JSMN_LIBS = -ljsmn -L ./jsmn/ 
 RPC_DIR = rpc
 RPC_SOURCES = $(RPC_DIR)/gen/opencdm_xdr_xdr.c $(RPC_DIR)/gen/opencdm_xdr_svc.c $(RPC_DIR)/gen/opencdm_callback_xdr.c $(RPC_DIR)/gen/opencdm_callback_clnt.c 
 RPC_OBJECTS = $(RPC_SOURCES:.c=.o)
@@ -29,7 +29,7 @@ RPC_INCLUDES = -I $(RPC_DIR)/gen
 
 SERVICE_SOURCES = service.cpp libs/shmemsem/shmemsem_helper.cpp
 SERVICE_INCLUDES = -I $(CDMI_DIR) $(RPC_INCLUDES)
-SERVICE_LIBS = -l$(CDMILIB_NAME) -lrt $(JSMN_LIBS)
+SERVICE_LIBS = -l$(CDMILIB_NAME) -lrt $(JSMN_LIBS) -lcrypto
 
 .PHONY: jsmn clean
 

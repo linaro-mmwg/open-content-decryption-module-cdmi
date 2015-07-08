@@ -17,6 +17,7 @@
  * limitations under the License.
  */
 #include <stdio.h>
+#include <algorithm>
 #include <iostream>
 #include <string.h>
 #include <stdlib.h>
@@ -115,6 +116,12 @@ static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
   return -1;
 }
 
+static void fixUpURLSafeBase64(std::string &str)
+{
+    std::replace( str.begin(), str.end(), '_', '/');
+    std::replace( str.begin(), str.end(), '-', '+');
+}
+
 static bool convertStringsToKeyPair(KeyIdAndKeyPair* pair, std::string key,
         std::string keyId)
 {
@@ -131,9 +138,11 @@ static bool convertStringsToKeyPair(KeyIdAndKeyPair* pair, std::string key,
   if(padding > 0)
     key.append(padding, kBase64Padding);
 
+  fixUpURLSafeBase64(key);
+  fixUpURLSafeBase64(keyId);
+
   decoded_key = base64_decode(key);
   decoded_key_id = base64_decode(keyId);
-
   *pair = std::make_pair(decoded_key_id, decoded_key);
   return true;
 }

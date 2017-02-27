@@ -15,10 +15,13 @@
  */
 
 // For the support of portable data types such as uint8_t.
-#include <stdint.h>
+#ifndef OCDM_INCLUDE_CDMI_H__
+#define OCDM_INCLUDE_CDMI_H__
 
-namespace CDMi
-{
+#include <stdint.h>
+#include "cdmi-defs.h"
+
+BEGIN_NAMESPACE_OCDM()
 
 // EME error code to which CDMi errors are mapped. Please
 // refer to the EME spec for details of the errors
@@ -196,4 +199,6 @@ CDMi_RESULT CreateMediaEngineSession(
 CDMi_RESULT DestroyMediaEngineSession(
     IMediaEngineSession *f_piMediaEngineSession); //__in 
 
-} // namespace CDMi
+END_NAMESPACE_OCDM()
+
+#endif //OCDM_INCLUDE_CDMI_H__

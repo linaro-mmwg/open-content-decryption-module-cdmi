@@ -21,7 +21,7 @@
 
 using namespace std;
 
-namespace CDMi {
+BEGIN_NAMESPACE_OCDM()
 
 CMediaEngineSession::CMediaEngineSession(void) :
     m_pbSessionKey(NULL),
@@ -99,4 +99,4 @@ CDMi_RESULT CreateMediaEngineSession(
 CDMi_RESULT DestroyMediaEngineSession(
     IMediaEngineSession *f_piMediaEngineSession) {}
 
-}  // namespace CDMi
+END_NAMESPACE_OCDM()

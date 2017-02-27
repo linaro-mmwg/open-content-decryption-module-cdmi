@@ -7,8 +7,13 @@ else
 AM_CXXFLAGS +=
 endif
 
-cdmiservice_LDADD = ${top_srcdir}/rpc/libocdm_rpc.a \
-										${top_srcdir}/cdmi-stub/libcdmi.a
+cdmiservice_LDADD = ${top_srcdir}/rpc/libocdm_rpc.a
+
+if USE_PLAYREADY_CDMI
+include Makefile.playready
+else
+cdmiservice_LDADD += ${top_srcdir}/cdmi-stub/libcdmi.a
+endif
 
 if OPENSSL
 cdmiservice_LDADD += -lcrypto -lssl
@@ -18,5 +23,4 @@ AM_CXXFLAGS += -std=c++11 \
  	  -I${top_srcdir}/include \
     -I${top_srcdir}/rpc \
 	  -I$(top_srcdir)/include/shmemsem/
-
 

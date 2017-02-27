@@ -18,8 +18,7 @@
 
 using namespace std;
 
-namespace CDMi
-{
+BEGIN_NAMESPACE_OCDM()
 
 class CMediaKeySession : public IMediaKeySession
 {
@@ -143,4 +142,4 @@ private:
     uint32_t m_cbSessionKey;
 };
 
-}  // namespace CDMi
+END_NAMESPACE_OCDM()

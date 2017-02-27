@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef CDMI_LOG_H_
-#define CDMI_LOG_H_
+#ifndef OCDM_CDMI_LOG_H_
+#define OCDM_CDMI_LOG_H_
 #include <ostream>
 #include <sstream>
 #include <string>
 
-namespace CDMi
-{
+
+BEGIN_NAMESPACE_OCDM()
 
 class Voidify {
  public:
@@ -60,6 +60,7 @@ class CdmiLogStream {
 
 #define CDMI_WLOG() CDM_LAZY_STREAM(CdmiLogStream().stream(), true) \
     << CdmiLogMessage(__FILE__, __LINE__).message()
-}//namespace CDMi
 
-#endif
+END_NAMESPACE_OCDM()
+
+#endif //OCDM_CDMI_LOG_H_

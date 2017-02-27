@@ -1,6 +1,10 @@
 RPCGEN = rpcgen
 
-pkglib_LIBRARIES = libocdm_rpc.a
+noinst_LIBRARIES = libocdm_rpc.a
+
+# Disable warnings in xdr .c files
+# due to "unused variable 'buf'"
+AM_CFLAGS += "-Wno-unused-variable"
 
 SUFFIXES = .x .c .h
 

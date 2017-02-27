@@ -7,16 +7,7 @@ BUILD and SETUP
 
 1. Make sure that you build the latest PK3 including the CDMI.
 
-2. Build the code:
+2. Build with playready:
 
-  # make -B CDMI_MAKE_CONFIG=config_playready.mk PLAYREADY_DIR=$HOME/playready
-
-where PLAYREADY_DIR is the path to the PK3 build.
-
-3. Copy the test PK3 Samples folder to your the ocdm project:
-
-  # cp ~/playready/Samples test/
-  # cd test
-  # ../cdmiservice
-
-
+# ./configure  --enable-playready LDFLAGS="-L${HOME}/playready/obj/ -L${HOME}/playready/obj/lib"
+# make 

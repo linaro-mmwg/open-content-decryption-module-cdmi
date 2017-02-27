@@ -37,7 +37,8 @@ extern "C" {
 #include "opencdm_callback.h"
 }
 
-using namespace CDMi;
+USE_NAMESPACE_OCDM()
+
 using namespace std;
 
 /* Compare operator for std::map */
@@ -73,8 +74,6 @@ class CCallback : public IMediaKeySessionCallback {
       const uint8_t *pbKeyMessage,
       uint32_t cbKeyMessage,
       char *f_pszUrl) {
-    uint8_t *pbChallenge = NULL;
-    uint32_t cbChallenge = 0;
 
     string message;
 
@@ -144,9 +143,10 @@ rpc_response_generic* rpc_open_cdm_mediakeys_1_svc(
 rpc_response_create_session* rpc_open_cdm_mediakeys_create_session_1_svc(
   rpc_request_create_session *sessionmessage, struct svc_req *) {
   static CDMi_RESULT cr = CDMi_S_FALSE;
-  rpc_response_create_session *response =
+  static rpc_response_create_session *response =
       reinterpret_cast<rpc_response_create_session*>(
       malloc(sizeof(rpc_response_create_session)));
+
   IMediaKeySessionCallback *callback = NULL;
   char *dst, *lic;
 
@@ -157,8 +157,7 @@ rpc_response_create_session* rpc_open_cdm_mediakeys_create_session_1_svc(
   g_pnum = sessionmessage->callback_info.prog_num;
 
   if (g_pMediaKeys) {
-    IMediaKeySession *p_mediaKeySession =
-        reinterpret_cast<IMediaKeySession*>(malloc(sizeof(IMediaKeySession)));
+    IMediaKeySession *p_mediaKeySession;
     cr = g_pMediaKeys->CreateMediaKeySession(
         sessionmessage->init_data_type.init_data_type_val,
         sessionmessage->init_data.init_data_val,
@@ -179,14 +178,23 @@ rpc_response_create_session* rpc_open_cdm_mediakeys_create_session_1_svc(
       callback = new CCallback(p_mediaKeySession);
       // generates challenge
       lic = p_mediaKeySession->RunAndGetLicenceChallange(callback);
-      CDMI_WLOG() << "Licesnse :" << lic;
-      response->licence_req.licence_req_len = strlen(lic);
-      response->licence_req.licence_req_val = lic;
+      if(lic) {
+        CDMI_WLOG() << "License :" << lic ;
+        /* Free old response */
+        if(response->licence_req.licence_req_val)
+          free(response->licence_req.licence_req_val);
+
+        response->licence_req.licence_req_len = strlen(lic);
+        response->licence_req.licence_req_val = lic;
+      } else {
+        CDMI_ELOG() << "Failed obtain license from CDMI";
+        cr = CDMi_S_FALSE;
+      }
+
     }  else {
       CDMI_ELOG() << "Failed to create session" ;
     }
   }
-
   response->platform_val = cr;
   return response;
 }
@@ -240,7 +248,7 @@ rpc_response_generic* rpc_open_cdm_mediakeysession_release_1_svc(
   if (p_mediaKeySession) {
     p_mediaKeySession->Close();
     g_mediaKeySessions.erase(params->session_id.session_id_val);
-    free(p_mediaKeySession);
+    g_pMediaKeys->DestroyMediaKeySession(p_mediaKeySession);
     cr = CDMi_SUCCESS;
   } else {
     cr = CDMi_S_FALSE;
@@ -250,18 +258,14 @@ rpc_response_generic* rpc_open_cdm_mediakeysession_release_1_svc(
   return response;
 }
 
-void decryptShmem(int idxMES, int idXchngSem, int idXchngShMem) {
+void decryptShmem(unsigned int idxMES, int idXchngSem, int idXchngShMem) {
   shmem_info *mesShmem;
   IMediaEngineSession *pMediaEngineSession = NULL;
   mesShmem = (shmem_info *) MapSharedMemory(idXchngShMem);
 
   for (;;) {
-    /* ***** BENCHMARK begin ***** */
-    timespec ts_bm_decrypt_start, ts_bm_decrypt_end;
-    clock_gettime(CLOCK_MONOTONIC, &ts_bm_decrypt_start);
-    /* ***** BENCHMARK end ***** */
 
-    CDMi_RESULT cr = CDMi_SUCCESS;
+    CDMi_RESULT cr;
     if (g_mediaEngineSessions.size() -1 < idxMES) {
       CDMI_ELOG() << "decryptShmem: invalid media engine session idx: "
            << idxMES;
@@ -308,7 +312,6 @@ void decryptShmem(int idxMES, int idXchngSem, int idXchngShMem) {
       uint8_t *mem_iv = (uint8_t *) MapSharedMemory(mesShmem->idIvShMem);
       uint8_t *mem_sample = (uint8_t *) MapSharedMemory(mesShmem->idSampleShMem);
 
-      uint32_t *empty = new uint32_t[0];
       uint32_t clear_content_size;
       static uint8_t* clear_content = NULL;
       /* FIXME: Releasing needs to be implemented using a separate
@@ -327,6 +330,9 @@ void decryptShmem(int idxMES, int idXchngSem, int idXchngShMem) {
           mem_sample,
           &clear_content_size,
           &clear_content);
+      if(cr!=CDMi_SUCCESS)
+        CDMI_ELOG() << "Failed to decrypt sample. Error:" << cr;
+
       // FIXME: opencdm uses a single buffer for passing the
       //  encrypted and decrypted buffer. Due to this we need an
       //  additional memcpy
@@ -400,9 +406,6 @@ void doCallback(
   }
 
   const char *temp_message = message.c_str();
-  char ** msg = (char**) &temp_message;
-
-  int * argp = reinterpret_cast<int*>(&error);
 
   int sid_size = strlen(sid);
 
@@ -443,5 +446,5 @@ void doCallback(
     default:
       CDMI_ELOG() << "doCallback: unknown eventType" ;
     }
-    free(dst);
+    delete[] dst;
 }

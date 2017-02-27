@@ -1,4 +1,4 @@
-pkglib_LIBRARIES = libcdmi.a
+noinst_LIBRARIES = libcdmi.a
 
 AM_CXXFLAGS = -I./jsmn  \
 							-I${top_srcdir}/include

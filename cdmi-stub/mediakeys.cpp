@@ -20,10 +20,11 @@
 #include <string.h>
 
 #include "imp.h"
+#include <cdmi-log.h>
 
 using namespace std;
 
-namespace CDMi {
+BEGIN_NAMESPACE_OCDM()
 
 uint32_t CMediaKeys::s_sessionCnt = 10;
 
@@ -59,16 +60,14 @@ CDMi_RESULT CMediaKeys::CreateMediaKeySession(
     const uint8_t *f_pbCDMData,
     uint32_t f_cbCDMData,
     IMediaKeySession **f_ppiMediaKeySession) {
-  cout << "#CMediaKeys::CreateMediaKeySession" << endl;
+  CDMI_DLOG() << "#CMediaKeys::CreateMediaKeySession" << endl;
 
-  CDMi_RESULT dr = CDMi_S_FALSE;
+  CDMi_RESULT dr;
   CMediaKeySession *poMediaKeySession = NULL;
 
   *f_ppiMediaKeySession = NULL;
 
   poMediaKeySession = new CMediaKeySession(CMediaKeys::CreateSessionId());
-
-  cout << "#CMediaKeys::CreateMediaKeySession: created new CMediaKeySession" << endl;
 
   dr = poMediaKeySession->Init(f_pbInitData,
       f_cbInitData,
@@ -110,4 +109,4 @@ CDMi_RESULT DestroyMediaKeys(IMediaKeys *f_piMediaKeys) {
   return dr;
 }
 
-}  // namespace CDMi
+END_NAMESPACE_OCDM()

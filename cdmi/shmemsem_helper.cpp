@@ -40,7 +40,7 @@ int AllocateSharedMemory(int n)
 void* MapSharedMemory(int id)
 {
     void* addr;
-    assert(id != 0); // Idiot-proof the call.
+    assert(id >= 0); // Idiot-proof the call.
     addr = shmat(id, NULL, 0);  // Attach the segment...
     shmctl(id, IPC_RMID, NULL); // ...and mark it destroyed.
     return addr;
@@ -56,7 +56,7 @@ void* MapSharedMemory(int id)
 void* MapExistingSharedMemory(int id, void* existingAddr)
 {
     void* addr;
-    assert(id != 0); // Idiot-proof the call.
+    assert(id >= 0); // Idiot-proof the call.
     addr = shmat(id, existingAddr, 0);  // Attach the segment...
     shmctl(id, IPC_RMID, NULL); // ...and mark it destroyed.
     return addr;

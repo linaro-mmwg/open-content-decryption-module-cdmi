@@ -24,6 +24,7 @@
 #include "imp.h"
 #include "json_web_key.h"
 #include "keypairs.h"
+#include "cdmi-log.h"
 
 #define DESTINATION_URL_PLACEHOLDER ""
 
@@ -89,7 +90,7 @@ static std::string keyIdAndKeyPairsToJSON(media::KeyIdAndKeyPairs *g_keys) {
 
 CMediaKeySession::CMediaKeySession(const char *sessionId) : m_piCallback(NULL) {
   m_sessionId = sessionId;
-  cout << "creating mediakeysession with id: " << m_sessionId << endl;
+  CDMI_DLOG() << "creating mediakeysession with id: " << m_sessionId << endl;
 }
 
 CMediaKeySession::~CMediaKeySession(void) {}
@@ -100,7 +101,7 @@ char* CMediaKeySession::RunAndGetLicenceChallange(
   char* result;
   pthread_t thread;
 
-  cout << "#mediakeysession.Run" << endl;
+  CDMI_DLOG() << "#mediakeysession.Run" << endl;
 
   if (f_piMediaKeySessionCallback != NULL) {
     m_piCallback = const_cast<IMediaKeySessionCallback *>(f_piMediaKeySessionCallback);
@@ -109,11 +110,11 @@ char* CMediaKeySession::RunAndGetLicenceChallange(
     if (err == 0) {
       pthread_detach(thread);
     } else {
-      cout << "#mediakeysession.Run: err: could not create thread" << endl;
+      CDMI_ELOG() << "#mediakeysession.Run: err: could not create thread" << endl;
       return NULL;
     }
   } else {
-    cout << "#mediakeysession.Run: err: MediaKeySessionCallback NULL?" << endl;
+    CDMI_ELOG() << "#mediakeysession.Run: err: MediaKeySessionCallback NULL" << endl;
   }
   result = (char*) malloc(sizeof(char) * (strlen(kPersistentLicenceRequest) + 1));
   strncpy(result, kPersistentLicenceRequest, strlen(kPersistentLicenceRequest));
@@ -129,10 +130,10 @@ void* CMediaKeySession::_CallRunThread2(void *arg) {
 }
 
 void* CMediaKeySession::RunThread(int i) {
-  cout << "#mediakeysession._RunThread : " << i << endl;
+  CDMI_DLOG() << "#mediakeysession._RunThread : " << i << endl;
 
   if(!m_piCallback) {
-    cerr << "Callback function not set" <<endl;
+    CDMI_ELOG() << "Callback function not set" <<endl;
     return NULL;
   }
 
@@ -150,7 +151,7 @@ void CMediaKeySession::Update(
   pthread_t thread;
   std::string keys_updated;
 
-  cout << "#mediakeysession.Run" << endl;
+  CDMI_DLOG() << "#mediakeysession.Run" << endl;
   std::string key_string(reinterpret_cast<const char*>(f_pbKeyMessageResponse),
                                    f_cbKeyMessageResponse);
   //Session type is set to "0". We keep the function signature to
@@ -161,7 +162,7 @@ void CMediaKeySession::Update(
   if (ret == 0) {
     pthread_detach(thread);
   } else {
-    cout << "#mediakeysession.Run: err: could not create thread" << endl;
+    CDMI_ELOG() << "#mediakeysession.Run: err: could not create thread" << endl;
     return;
   }
   keys_updated = keyIdAndKeyPairsToJSON(&g_keys);
@@ -225,18 +226,18 @@ CDMi_RESULT CMediaKeySession::Decrypt(
   assert(f_cbIV <  AES_BLOCK_SIZE);
 
   if(f_pcbOpaqueClearContent == NULL) {
-    cout << "ERROR: f_pcbOpaqueClearContent is NULL" << endl;
+    CDMI_ELOG() << "ERROR: f_pcbOpaqueClearContent is NULL" << endl;
     return -1;
   }
 
   out = (uint8_t*) malloc(f_cbData * sizeof(uint8_t));
 
   if(g_keys.size() != 1) {
-        cout << "FIXME: We support only one key at the moment. Number keys: " << g_keys.size()<< endl;
+        CDMI_DLOG() << "FIXME: We support only one key at the moment. Number keys: " << g_keys.size()<< endl;
     }
 
   if ( (g_keys[0].second).size() != kDecryptionKeySize) {
-    cout << "ERROR: Wrong key size" << endl;
+    CDMI_ELOG() << "ERROR: Wrong key size" << endl;
     goto fail;
   }
 
@@ -257,7 +258,7 @@ CDMi_RESULT CMediaKeySession::Decrypt(
   if(TEE_AES_ctr128_encrypt(reinterpret_cast<const unsigned char*>(f_pbData),
                      out, f_cbData, key,
                      ivec, ecount_buf, &block_offset) !=0) {
-      cout << "ERROR: AES CTR128 Decryption failed\n";
+      CDMI_ELOG() << "ERROR: AES CTR128 Decryption failed\n";
       goto fail;
   }
 #endif

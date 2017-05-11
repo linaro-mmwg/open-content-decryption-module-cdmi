@@ -171,7 +171,8 @@ rpc_response_create_session* rpc_open_cdm_mediakeys_create_session_1_svc(
       uint32_t sid_size = strlen(sid);
       g_mediaKeySessions[sid] = p_mediaKeySession;
       dst = reinterpret_cast<char*>(malloc(sizeof(char) * sid_size));
-      strcpy(dst, sid);
+
+      strncpy(dst, sid, sid_size);
       response->session_id.session_id_val = dst;
       response->session_id.session_id_len = sid_size;
 

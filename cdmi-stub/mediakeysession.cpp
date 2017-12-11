@@ -26,7 +26,11 @@
 #include "keypairs.h"
 #include "cdmi-log.h"
 
+#if WPE
+#define DESTINATION_URL_PLACEHOLDER " #SPLIT# "
+#else   // Chromium
 #define DESTINATION_URL_PLACEHOLDER ""
+#endif
 
 #define NYI_KEYSYSTEM "keysystem-placeholder"
 #ifndef USE_AES_TA
@@ -153,10 +157,16 @@ void CMediaKeySession::Update(
 
   CDMI_DLOG() << "#mediakeysession.Run" << endl;
   std::string key_string(reinterpret_cast<const char*>(f_pbKeyMessageResponse),
-                                   f_cbKeyMessageResponse);
+                                   f_cbKeyMessageResponse)
+#if WPE
+  std::string key_id("1", 1);
+  media::KeyIdAndKeyPair key(key_id, key_string);
+  g_keys.assign(1, key);
+#else  //Chrome      
   //Session type is set to "0". We keep the function signature to
   //match Chromium's ExtractKeysFromJWKSet(...) function
   media::ExtractKeysFromJWKSet(key_string, &g_keys, 0);
+#endif   
 
   ret = pthread_create(&thread, NULL, CMediaKeySession::_CallRunThread2, this);
   if (ret == 0) {
@@ -165,7 +175,11 @@ void CMediaKeySession::Update(
     CDMI_ELOG() << "#mediakeysession.Run: err: could not create thread" << endl;
     return;
   }
+    
+#ifndef WPE    
   keys_updated = keyIdAndKeyPairsToJSON(&g_keys);
+#endif
+    
   m_piCallback->OnKeyStatusUpdate(key_string.c_str());
 }
 

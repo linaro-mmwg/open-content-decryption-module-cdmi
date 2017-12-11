@@ -419,7 +419,12 @@ void doCallback(
       km.session_id.session_id_len = sid_size;
       km.session_id.session_id_val = dst;
       km.destination_url = const_cast<char*>(temp_message);
+#if WPE
+      km.message.message_len = strlen(temp_message);
+      km.message.message_val = const_cast<char*>(temp_message);
+#else // Chromium
       km.message = const_cast<char*>(temp_message);
+#endif      
       on_message_1(&km, clnt);
       break;
 

@@ -157,7 +157,7 @@ void CMediaKeySession::Update(
 
   CDMI_DLOG() << "#mediakeysession.Run" << endl;
   std::string key_string(reinterpret_cast<const char*>(f_pbKeyMessageResponse),
-                                   f_cbKeyMessageResponse)
+                                   f_cbKeyMessageResponse);
 #if WPE
   std::string key_id("1", 1);
   media::KeyIdAndKeyPair key(key_id, key_string);

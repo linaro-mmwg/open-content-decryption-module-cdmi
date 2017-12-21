@@ -88,8 +88,8 @@ public:
     virtual ~CMediaKeys(void);
 
     virtual bool IsTypeSupported(
-        const char *f_pwszKeySystem,
-        const char *f_pwszMimeType) const;
+        const char *f_pwszMimeType,
+        const char *f_pwszKeySystem) const;
 
     virtual CDMi_RESULT CreateMediaKeySession(
         const char *f_pwszMimeType,

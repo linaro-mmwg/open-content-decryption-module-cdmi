@@ -115,8 +115,8 @@ rpc_response_generic* rpc_open_cdm_is_type_supported_1_svc(
        << type->key_system.key_system_val ;
   if (g_pMediaKeys) {
     cr = g_pMediaKeys->IsTypeSupported(
-      reinterpret_cast<char *>(type->key_system.key_system_val),
-       reinterpret_cast<char *>(type->mime_type.mime_type_val));
+      reinterpret_cast<char *>(type->mime_type.mime_type_val),
+       reinterpret_cast<char *>(type->key_system.key_system_val));
   } else {
     cr = CDMi_S_FALSE;
   }

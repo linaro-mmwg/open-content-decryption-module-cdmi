@@ -26,11 +26,7 @@
 #include "keypairs.h"
 #include "cdmi-log.h"
 
-#if WPE
-#define DESTINATION_URL_PLACEHOLDER " #SPLIT# "
-#else   // Chromium
 #define DESTINATION_URL_PLACEHOLDER ""
-#endif
 
 #define NYI_KEYSYSTEM "keysystem-placeholder"
 #ifndef USE_AES_TA
@@ -176,9 +172,7 @@ void CMediaKeySession::Update(
     return;
   }
     
-#ifndef WPE    
   keys_updated = keyIdAndKeyPairsToJSON(&g_keys);
-#endif
     
   m_piCallback->OnKeyStatusUpdate(key_string.c_str());
 }

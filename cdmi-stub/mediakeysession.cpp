@@ -171,9 +171,7 @@ void CMediaKeySession::Update(
     CDMI_ELOG() << "#mediakeysession.Run: err: could not create thread" << endl;
     return;
   }
-    
   keys_updated = keyIdAndKeyPairsToJSON(&g_keys);
-    
   m_piCallback->OnKeyStatusUpdate(key_string.c_str());
 }
 

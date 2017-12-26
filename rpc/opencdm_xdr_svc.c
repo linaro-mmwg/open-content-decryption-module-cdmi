@@ -54,11 +54,7 @@ open_cdm_1(struct svc_req *rqstp, register SVCXPRT *transp)
 		_xdr_result = (xdrproc_t) xdr_rpc_response_create_session;
 		local = (char *(*)(char *, struct svc_req *)) rpc_open_cdm_mediakeys_create_session_1_svc;
 		break;
-#if WPE
-        case RPC_OPEN_CDM_MEDIAKEYSESSION_LOAD:
-#else	// Chromium
 	case RPC_OPEN_CDM_MEDIAKEYS_LOAD_SESSION:
-#endif			
 		_xdr_argument = (xdrproc_t) xdr_rpc_request_load_session;
 		_xdr_result = (xdrproc_t) xdr_rpc_response_generic;
 		local = (char *(*)(char *, struct svc_req *)) rpc_open_cdm_mediakeys_load_session_1_svc;

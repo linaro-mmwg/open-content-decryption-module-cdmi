@@ -45,9 +45,6 @@ struct rpc_request_callback_info {
 typedef struct rpc_request_callback_info rpc_request_callback_info;
 
 struct rpc_request_create_session {
-#if WPE
-       int32_t license_type;
-#endif	
 	struct {
 		u_int init_data_type_len;
 		char *init_data_type_val;

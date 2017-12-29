@@ -154,15 +154,18 @@ void CMediaKeySession::Update(
   CDMI_DLOG() << "#mediakeysession.Run" << endl;
   std::string key_string(reinterpret_cast<const char*>(f_pbKeyMessageResponse),
                                    f_cbKeyMessageResponse);
-#if WPE
-  std::string key_id("1", 1);
-  media::KeyIdAndKeyPair key(key_id, key_string);
-  g_keys.assign(1, key);
-#else  //Chrome      
-  //Session type is set to "0". We keep the function signature to
-  //match Chromium's ExtractKeysFromJWKSet(...) function
-  media::ExtractKeysFromJWKSet(key_string, &g_keys, 0);
-#endif   
+
+  if (key_string.compare(0, 1, "{"))
+  {
+        CDMI_DLOG() << "KEY not in JSON format" << endl;
+        std::string key_id("1");	// dummy keyid for adding key_string to gkeys
+        media::KeyIdAndKeyPair key(key_id, key_string);
+        g_keys.assign(1, key);
+  }
+  else
+      //Session type is set to "0". We keep the function signature to
+      //match Chromium's ExtractKeysFromJWKSet(...) function
+      media::ExtractKeysFromJWKSet(key_string, &g_keys, 0);
 
   ret = pthread_create(&thread, NULL, CMediaKeySession::_CallRunThread2, this);
   if (ret == 0) {

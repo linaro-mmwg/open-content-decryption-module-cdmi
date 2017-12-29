@@ -128,9 +128,9 @@ extern  rpc_response_generic * rpc_open_cdm_is_type_supported_1_svc(rpc_request_
 extern  rpc_response_generic * rpc_open_cdm_mediakeys_1(rpc_request_mediakeys *, CLIENT *);
 extern  rpc_response_generic * rpc_open_cdm_mediakeys_1_svc(rpc_request_mediakeys *, struct svc_req *);
 #define RPC_OPEN_CDM_MEDIAKEYS_CREATE_SESSION 3
+#define RPC_OPEN_CDM_MEDIAKEYS_LOAD_SESSION 4	
 extern  rpc_response_create_session * rpc_open_cdm_mediakeys_create_session_1(rpc_request_create_session *, CLIENT *);
 extern  rpc_response_create_session * rpc_open_cdm_mediakeys_create_session_1_svc(rpc_request_create_session *, struct svc_req *);
-#define RPC_OPEN_CDM_MEDIAKEYS_LOAD_SESSION 4
 extern  rpc_response_generic * rpc_open_cdm_mediakeys_load_session_1(rpc_request_load_session *, CLIENT *);
 extern  rpc_response_generic * rpc_open_cdm_mediakeys_load_session_1_svc(rpc_request_load_session *, struct svc_req *);
 #define RPC_OPEN_CDM_MEDIAKEYSESSION_UPDATE 5
@@ -143,6 +143,10 @@ extern  rpc_response_generic * rpc_open_cdm_mediakeysession_release_1_svc(rpc_re
 extern  rpc_response_generic * rpc_open_cdm_mediaengine_1(rpc_request_mediaengine_data *, CLIENT *);
 extern  rpc_response_generic * rpc_open_cdm_mediaengine_1_svc(rpc_request_mediaengine_data *, struct svc_req *);
 extern int open_cdm_1_freeresult (SVCXPRT *, xdrproc_t, caddr_t);
+//WPE
+#define RPC_OPEN_CDM_MEDIAKEYS_SET_SERVER_CERTIFICATE 8
+#define RPC_OPEN_CDM_MEDIAKEYSESSION_REMOVE 9
+#define RPC_OPEN_CDM_MEDIAKEYSESSION_CLOSE 10	
 
 #else /* K&R C */
 #define RPC_OPEN_CDM_IS_TYPE_SUPPORTED 1
@@ -155,9 +159,10 @@ extern  rpc_response_generic * rpc_open_cdm_mediakeys_1_svc();
 extern  rpc_response_create_session * rpc_open_cdm_mediakeys_create_session_1();
 extern  rpc_response_create_session * rpc_open_cdm_mediakeys_create_session_1_svc();
 #define RPC_OPEN_CDM_MEDIAKEYS_LOAD_SESSION 4
+#define RPC_OPEN_CDM_MEDIAKEYSESSION_UPDATE 5
 extern  rpc_response_generic * rpc_open_cdm_mediakeys_load_session_1();
 extern  rpc_response_generic * rpc_open_cdm_mediakeys_load_session_1_svc();
-#define RPC_OPEN_CDM_MEDIAKEYSESSION_UPDATE 5
+
 extern  rpc_response_generic * rpc_open_cdm_mediakeysession_update_1();
 extern  rpc_response_generic * rpc_open_cdm_mediakeysession_update_1_svc();
 #define RPC_OPEN_CDM_MEDIAKEYSESSION_RELEASE 6
@@ -167,6 +172,10 @@ extern  rpc_response_generic * rpc_open_cdm_mediakeysession_release_1_svc();
 extern  rpc_response_generic * rpc_open_cdm_mediaengine_1();
 extern  rpc_response_generic * rpc_open_cdm_mediaengine_1_svc();
 extern int open_cdm_1_freeresult ();
+//WPE
+#define RPC_OPEN_CDM_MEDIAKEYS_SET_SERVER_CERTIFICATE 8
+#define RPC_OPEN_CDM_MEDIAKEYSESSION_REMOVE 9
+#define RPC_OPEN_CDM_MEDIAKEYSESSION_CLOSE 10	
 #endif /* K&R C */
 
 /* the xdr functions */

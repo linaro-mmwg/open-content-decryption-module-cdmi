@@ -35,7 +35,12 @@ CMediaKeys::~CMediaKeys(void) {}
 bool CMediaKeys::IsTypeSupported(
     const char *f_pwszMimeType,
     const char *f_pwszKeySystem) const {
-  bool isSupported = true;
+  bool isSupported = false;
+  if (f_pwszKeySystem) 
+      if (strcmp(f_pwszKeySystem, "org.w3.clearkey") == 0 || strcmp(f_pwszKeySystem, "org.chromium.externalclearkey") == 0)
+          isSupported = true;
+
+  return isSupported;
 }
 
 const char * CMediaKeys::CreateSessionId() {

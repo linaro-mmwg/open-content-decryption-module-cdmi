@@ -38,7 +38,9 @@ CDMi_RESULT CMediaEngineSession::Decrypt(
         uint32_t  f_cbData,
         const uint8_t  *f_pbData,
         uint32_t *f_pcbOpaqueClearContent,
-        uint8_t **f_ppbOpaqueClearContent) {
+        uint8_t **f_ppbOpaqueClearContent,
+        uint32_t  f_cbSecureMem,
+        int       f_secureFd) {
 
   CMediaKeySession *pMediaKeySession =
       static_cast<CMediaKeySession *>(m_pMediaKeySession);
@@ -52,7 +54,9 @@ CDMi_RESULT CMediaEngineSession::Decrypt(
       f_pbData,
       f_cbData,
       f_pcbOpaqueClearContent,
-      f_ppbOpaqueClearContent
+      f_ppbOpaqueClearContent,
+      f_cbSecureMem,
+      f_secureFd
 );
 
 }

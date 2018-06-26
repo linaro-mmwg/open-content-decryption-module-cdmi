@@ -259,7 +259,10 @@ rpc_response_generic* rpc_open_cdm_mediakeysession_release_1_svc(
   return response;
 }
 
+
 void decryptShmem(unsigned int idxMES, int idXchngSem, int idXchngShMem) {
+  int secureFd = -1;
+  uint32_t secureMemSize = 0;
   shmem_info *mesShmem;
   IMediaEngineSession *pMediaEngineSession = NULL;
   mesShmem = (shmem_info *) MapSharedMemory(idXchngShMem);
@@ -285,7 +288,7 @@ void decryptShmem(unsigned int idxMES, int idXchngSem, int idXchngShMem) {
        * TODO: (init, on create mes)
        *  1. transfer id of static info shmem (from client to cdmi)
        *  2. associate with mes
-       * 
+       *
        * TODO:
        *  1. get both shmems for corresponding media engine
        *  2. wait for access (lock)
@@ -293,7 +296,7 @@ void decryptShmem(unsigned int idxMES, int idXchngSem, int idXchngShMem) {
        *  4. get dynamic shmem with sampledata
        *  5. decrypt inplace
        *  6. unlock both shmem
-       * 
+       *
        *  HOWTO: reach end of loop, signaling end of segment?
        */
 
@@ -330,7 +333,9 @@ void decryptShmem(unsigned int idxMES, int idXchngSem, int idXchngShMem) {
           mesShmem->sampleSize,
           mem_sample,
           &clear_content_size,
-          &clear_content);
+          &clear_content,
+          secureMemSize,
+          secureFd);
       if(cr!=CDMi_SUCCESS)
         CDMI_ELOG() << "Failed to decrypt sample. Error:" << cr;
 

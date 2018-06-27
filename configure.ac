@@ -86,4 +86,12 @@ fi
 AM_CONDITIONAL(USE_AES_TA, test $ac_enable_aes_ta = yes)
 
 
+# Enable Secure Data Path
+AC_ARG_ENABLE(sdp, AC_HELP_STRING([--enable-sdp],
+                      [enable Secure Data Path (default is no)]),
+                    ac_enable_sdp=$enableval,
+                    ac_enable_sdp=no)
+
+AM_CONDITIONAL(CFG_SECURE_DATA_PATH, test $ac_enable_sdp = yes)
+
 AC_OUTPUT(Makefile cdmi-stub/Makefile rpc/Makefile cdmi/Makefile)

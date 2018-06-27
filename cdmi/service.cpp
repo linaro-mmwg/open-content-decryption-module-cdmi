@@ -37,6 +37,14 @@ extern "C" {
 #include "opencdm_callback.h"
 }
 
+
+#ifdef CFG_SECURE_DATA_PATH
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/mman.h>
+#define SOCKET_RECEIVE_TIMEOUT (1) // second(s)
+#endif
+
 USE_NAMESPACE_OCDM()
 
 using namespace std;
@@ -259,10 +267,180 @@ rpc_response_generic* rpc_open_cdm_mediakeysession_release_1_svc(
   return response;
 }
 
+
+#ifdef CFG_SECURE_DATA_PATH
+
+static int connectSocket(void)
+{
+  int status = 0;
+  int lSocketFd = -1; // Listening socket
+  int cSocketFd = -1; // Connected socket
+  struct sockaddr_un socketAddress;
+  uint32_t trials = 10000;
+  struct timeval timeout_tv;
+
+  lSocketFd = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0);
+  if(lSocketFd < 0) {
+    CDMI_ELOG() << "connectSocket: Failure to create socket";
+    status = -1;
+    goto handle_error;
+  }
+
+  /* Use abstract socket (First byte is \0). */
+  memset(&socketAddress, 0, sizeof(socketAddress));
+  socketAddress.sun_family = AF_UNIX;
+  strcpy(&socketAddress.sun_path[1], "opencdm_secure_fd_communication");
+
+  if(bind(lSocketFd,  (struct sockaddr *)&socketAddress, sizeof(socketAddress)) < 0) {
+    CDMI_ELOG() << "connectSocket: Failure to bind socket";
+    status = -1;
+    goto handle_error;
+  }
+
+  if(listen(lSocketFd, 1) < 0) {
+    CDMI_ELOG() << "connectSocket: Failure to set to listen state";
+    status = -1;
+    goto handle_error;
+  }
+
+  while(trials > 0)
+  {
+    cSocketFd = accept(lSocketFd, NULL, NULL);
+    if(cSocketFd >= 0) {
+      /* Connection accepted */
+      break;
+    } else if(errno != EWOULDBLOCK &&
+              errno != EAGAIN) {
+      CDMI_ELOG() << "connectSocket: Failure to accept connection";
+      status = -1;
+      goto handle_error;
+    }
+
+    usleep(1000);
+    trials--;
+  }
+  if(trials == 0) {
+    CDMI_ELOG() << "connectSocket: Timeout to accept connection";
+    status = -1;
+    goto handle_error;
+  }
+
+  /* Configure a timeout for recvmsg(). This is to avoid an infinite wait
+   in case of an error. */
+  timeout_tv.tv_sec = SOCKET_RECEIVE_TIMEOUT;
+  timeout_tv.tv_usec = 0;
+  status = setsockopt(cSocketFd, SOL_SOCKET, SO_RCVTIMEO, (const void *)&timeout_tv, sizeof(timeout_tv));
+  if(status < 0) {
+    CDMI_ELOG() << "connectSocket: Cannot configure recvmsg timeout";
+    goto handle_error;
+  }
+
+handle_error:
+  if(status < 0) {
+    if(cSocketFd >= 0) {
+      close(cSocketFd);
+      cSocketFd = -1;
+    }
+  }
+
+  if(lSocketFd >= 0) {
+    // Listening socket may be closed
+    close(lSocketFd);
+    lSocketFd = -1;
+  }
+
+  return cSocketFd;
+}
+
+static int receiveSecureFileDescriptor(int socketFd)
+{
+  int status = 0;
+  int secureFd = -1;
+  uint32_t secureSize = 0;
+
+  struct msghdr msg;
+  struct iovec iov;
+
+  /* Control message buffer contains the control message structure plus
+     one file descriptor. */
+  #define CMSG_SIZE (sizeof(struct cmsghdr) + sizeof(int))
+  uint8_t cmsg_buffer[CMSG_SIZE] = {0};
+  struct cmsghdr *cmsg; // Pointer to control message
+
+  if(socketFd < 0) {
+    CDMI_ELOG() << "Invalid socket file descriptor";
+    goto handle_error;
+  }
+
+  /* Get secure buffer size with the file descriptor */
+  iov.iov_base = &secureSize;
+  iov.iov_len  = sizeof(secureSize);
+
+  msg.msg_name       = NULL;
+  msg.msg_namelen    = 0;
+  msg.msg_iov        = &iov;
+  msg.msg_iovlen     = 1;
+  msg.msg_control    = cmsg_buffer;
+  msg.msg_controllen = CMSG_SIZE;
+  msg.msg_flags      = 0; /* ignored */
+
+  cmsg = CMSG_FIRSTHDR(&msg);
+  cmsg->cmsg_len = CMSG_SIZE;
+  cmsg->cmsg_level = SOL_SOCKET;
+  cmsg->cmsg_type = SCM_RIGHTS;
+  *(int *)CMSG_DATA(cmsg) = -1;
+
+  // This call will timeout after SOCKET_RECEIVE_TIMEOUT seconds
+  status = recvmsg(socketFd, &msg, 0);
+  if(status < 0) {
+    if(errno == EWOULDBLOCK || errno == EAGAIN)
+      CDMI_ELOG() << "Cannot receive FD (Timeout)";
+    else
+      CDMI_ELOG() << "Cannot receive FD";
+    goto handle_error;
+  }
+
+  //CDMI_DLOG() << "Buffer size is " << secureSize << " bytes";
+
+  secureFd = *(int *)CMSG_DATA(cmsg);
+  if(secureFd < 0) {
+    CDMI_ELOG() << "Invalid FD received";
+  }
+
+handle_error:
+  return secureFd;
+}
+
+
+// Get the size of the buffer referenced by the file descriptor.
+// When the size cannot be retrieved, the function returns 0.
+static uint32_t getSecureMemorySize(int secureFd)
+{
+  off_t size = lseek(secureFd, 0, SEEK_END);
+
+  return (size != (off_t)(-1)) ? size : 0;
+}
+
+#endif
+
+
 void decryptShmem(unsigned int idxMES, int idXchngSem, int idXchngShMem) {
+#ifdef CFG_SECURE_DATA_PATH
+  int socketFd = -1;
+#endif
+  int secureFd = -1;
+  uint32_t secureMemSize = 0;
   shmem_info *mesShmem;
   IMediaEngineSession *pMediaEngineSession = NULL;
   mesShmem = (shmem_info *) MapSharedMemory(idXchngShMem);
+
+#ifdef CFG_SECURE_DATA_PATH
+  // Establish connection to transfer the secure file descriptor.
+  socketFd = connectSocket();
+  if(socketFd < 0) {
+    return;
+  }
+#endif
 
   for (;;) {
 
@@ -271,7 +449,7 @@ void decryptShmem(unsigned int idxMES, int idXchngSem, int idXchngShMem) {
       CDMI_ELOG() << "decryptShmem: invalid media engine session idx: "
            << idxMES;
       cr = CDMi_S_FALSE;
-      return;
+      break;
     }
 
     pMediaEngineSession = g_mediaEngineSessions.at(idxMES);
@@ -279,13 +457,13 @@ void decryptShmem(unsigned int idxMES, int idXchngSem, int idXchngShMem) {
     if (pMediaEngineSession == NULL) {
       CDMI_ELOG() << "decryptShmem: no valid media engine session found";
       cr = CDMi_S_FALSE;
-      return;
+      break;
     } else {
       /*
        * TODO: (init, on create mes)
        *  1. transfer id of static info shmem (from client to cdmi)
        *  2. associate with mes
-       * 
+       *
        * TODO:
        *  1. get both shmems for corresponding media engine
        *  2. wait for access (lock)
@@ -293,7 +471,7 @@ void decryptShmem(unsigned int idxMES, int idXchngSem, int idXchngShMem) {
        *  4. get dynamic shmem with sampledata
        *  5. decrypt inplace
        *  6. unlock both shmem
-       * 
+       *
        *  HOWTO: reach end of loop, signaling end of segment?
        */
 
@@ -313,7 +491,7 @@ void decryptShmem(unsigned int idxMES, int idXchngSem, int idXchngShMem) {
       uint8_t *mem_iv = (uint8_t *) MapSharedMemory(mesShmem->idIvShMem);
       uint8_t *mem_sample = (uint8_t *) MapSharedMemory(mesShmem->idSampleShMem);
 
-      uint32_t clear_content_size;
+      static uint32_t clear_content_size = 0;
       static uint8_t* clear_content = NULL;
       /* FIXME: Releasing needs to be implemented using a separate
        *  IPC call. Currently we assume that the previous decrypted clear
@@ -321,6 +499,23 @@ void decryptShmem(unsigned int idxMES, int idXchngSem, int idXchngShMem) {
        */
       if(clear_content)
         pMediaEngineSession->ReleaseClearContent(clear_content_size, clear_content);
+
+#ifdef CFG_SECURE_DATA_PATH
+      /* Get secure file descriptor. */
+      secureFd = receiveSecureFileDescriptor(socketFd);
+      if(secureFd < 0) {
+        cr = CDMi_S_FALSE;
+        goto handle_error;
+      }
+
+      secureMemSize = getSecureMemorySize(secureFd);
+      if(secureMemSize == 0) {
+        CDMI_ELOG() << "Invalid secure memory size";
+        cr = CDMi_S_FALSE;
+        goto handle_error;
+      }
+#endif
+
       /* FIXME: We don't support subsamples */
       cr = pMediaEngineSession->Decrypt(
           0,          //number of subsamples
@@ -330,10 +525,13 @@ void decryptShmem(unsigned int idxMES, int idXchngSem, int idXchngShMem) {
           mesShmem->sampleSize,
           mem_sample,
           &clear_content_size,
-          &clear_content);
+          &clear_content,
+          secureMemSize,
+          secureFd);
       if(cr!=CDMi_SUCCESS)
         CDMI_ELOG() << "Failed to decrypt sample. Error:" << cr;
 
+#ifndef CFG_SECURE_DATA_PATH
       // FIXME: opencdm uses a single buffer for passing the
       //  encrypted and decrypted buffer. Due to this we need an
       //  additional memcpy
@@ -343,6 +541,15 @@ void decryptShmem(unsigned int idxMES, int idXchngSem, int idXchngShMem) {
           "buffer size"  << mesShmem->sampleSize;
 
       memcpy(mem_sample, clear_content, MIN(mesShmem->sampleSize, clear_content_size) );
+#endif
+
+handle_error:
+#ifdef CFG_SECURE_DATA_PATH
+      if(secureFd >= 0) {
+        close(secureFd);
+        secureFd = -1;
+      }
+#endif
 
       // detach all shared memories!
       DetachExistingSharedMemory(mem_iv);
@@ -352,6 +559,9 @@ void decryptShmem(unsigned int idxMES, int idXchngSem, int idXchngShMem) {
       UnlockSemaphore(idXchngSem, SEM_XCHNG_PULL);
     }
   }
+#ifdef CFG_SECURE_DATA_PATH
+  if(socketFd >= 0) close(socketFd);
+#endif
 }
 
 rpc_response_generic* rpc_open_cdm_mediaengine_1_svc(

@@ -221,7 +221,9 @@ CDMi_RESULT CMediaKeySession::Decrypt(
       const uint8_t *f_pbData,
       uint32_t f_cbData,
       uint32_t *f_pcbOpaqueClearContent,
-      uint8_t **f_ppbOpaqueClearContent) {
+      uint8_t **f_ppbOpaqueClearContent,
+      uint32_t  f_cbSecureMem,
+      int       f_secureFd) {
 
 
   uint8_t * out; /* Faked secure buffer */

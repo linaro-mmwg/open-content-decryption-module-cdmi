@@ -179,7 +179,9 @@ public:
         uint32_t  f_cbData,
         const uint8_t  *f_pbData,
         uint32_t *f_pcbOpaqueClearContent,
-        uint8_t **f_ppbOpaqueClearContent) = 0;
+        uint8_t **f_ppbOpaqueClearContent,
+        uint32_t  f_cbSecureMem,
+        int       f_secureFd) = 0;
 
     virtual CDMi_RESULT ReleaseClearContent(
         const uint32_t  f_cbClearContentOpaque,

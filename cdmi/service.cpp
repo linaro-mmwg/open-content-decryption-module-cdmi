@@ -333,6 +333,18 @@ void decryptShmem(unsigned int idxMES, int idXchngSem, int idXchngShMem, int idS
       uint8_t *mem_iv = (uint8_t *) MapSharedMemory(mesShmem->idIvShMem);
       uint8_t *mem_sample = (uint8_t *) MapSharedMemory(mesShmem->idSampleShMem);
 
+      uint32_t *mem_subsample_data = NULL;
+      uint32_t subsample_count = mesShmem->subsampleDataSize / sizeof(uint32_t);
+      if(subsample_count > 0) {
+        /* When available, map the sub-sample data. */
+        mem_subsample_data = (uint32_t *) MapSharedMemory(mesShmem->idSubsampleDataShMem);
+        if(mem_subsample_data == NULL) {
+          CDMI_ELOG() << "decryptShmem: Cannot map subsample data";
+          cr = CDMi_S_FALSE;
+          goto handle_error;
+        }
+      }
+
       static uint32_t clear_content_size = 0;
       static uint8_t* clear_content = NULL;
       /* FIXME: Releasing needs to be implemented using a separate
@@ -350,10 +362,9 @@ void decryptShmem(unsigned int idxMES, int idXchngSem, int idXchngShMem, int idS
       }
 #endif
 
-      /* FIXME: We don't support subsamples */
       cr = pMediaEngineSession->Decrypt(
-          0,          //number of subsamples
-          NULL,       //subsamples
+          subsample_count,          //number of subsamples
+          mem_subsample_data,       //subsamples (optional)
           mesShmem->ivSize,
           mem_iv,
           mesShmem->sampleSize,
@@ -377,8 +388,8 @@ void decryptShmem(unsigned int idxMES, int idXchngSem, int idXchngShMem, int idS
       memcpy(mem_sample, clear_content, MIN(mesShmem->sampleSize, clear_content_size) );
 #endif
 
-#ifdef CFG_SECURE_DATA_PATH
 handle_error:
+#ifdef CFG_SECURE_DATA_PATH
       socketServer.CloseFileDescriptor(secureFd);
       secureFd = -1;
 #endif
@@ -386,6 +397,7 @@ handle_error:
       // detach all shared memories!
       DetachExistingSharedMemory(mem_iv);
       DetachExistingSharedMemory(mem_sample);
+      if(mem_subsample_data != NULL) DetachExistingSharedMemory(mem_subsample_data);
 
       // unlock that clnt knows about finished decryption
       UnlockSemaphore(idXchngSem, SEM_XCHNG_PULL);

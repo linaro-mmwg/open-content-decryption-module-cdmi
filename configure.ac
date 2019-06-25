@@ -37,6 +37,25 @@ else
   AC_SUBST(AM_CFLAGS, "-O2 -Werror -Wall")
 fi
 
+AC_ARG_ENABLE(tirpc,
+[AC_HELP_STRING([--enable-tirpc],
+	[enable use of TI-RPC @<:@default=yes@:>@])],
+enable_tirpc=$enableval,
+	enable_tirpc='')
+
+if test "$enable_tirpc" != "no"; then
+  AC_CHECK_LIB([tirpc], [clnt_tli_create], , [
+  AC_MSG_ERROR([libtirpc not found and is required])
+  ])
+  PKG_CHECK_MODULES([TIRPC],
+                    [libtirpc],
+                    [RPC_CFLAGS=$TIRPC_CFLAGS; RPC_LIBS=$TIRPC_LIBS;],
+                    [AC_MSG_ERROR([libtirpc requested, but library not found.])]
+                    )
+fi
+
+AC_SUBST(RPC_CFLAGS)
+AC_SUBST(RPC_LIBS)
 
 AM_CONDITIONAL(DEBUG, test x"$debug" = x"true")
 
